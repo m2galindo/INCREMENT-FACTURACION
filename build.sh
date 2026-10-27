@@ -1,5 +1,5 @@
 #!/bin/sh
-# Genera ../index.html (sitio independiente). Ejecuta: sh src/build.sh
+# Genera index.html en esta carpeta (o en $OUT). Ejecuta: sh build.sh
 set -e
 cd "$(dirname "$0")"
 ALL=$(mktemp)
@@ -7,7 +7,7 @@ trap 'rm -f "$ALL"' EXIT
 cat cat.js catsat.js ccpsat.js catapply.js storage.js core.js pdf.js xlsx.js app1.js zf.js app2.js masiva.js bita.js app3.js app4.js app5.js series.js sat.js app6.js geo.js taxes.js catsat2.js ccp.js combo.js xlsread.js unidad.js > "$ALL"
 
 # ---- Sitio independiente: documento HTML completo + folia.config.js opcional ----
-OUT=..
+OUT=${OUT:-.}
 L=$(grep -n '<div id="app">' head.html | cut -d: -f1)
 {
   printf '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n'

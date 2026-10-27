@@ -45,7 +45,7 @@ Object.assign(A, {
     S.mas.result = res; render();
     openModal(`<header class="mh"><h3>Lote timbrado</h3><button class="x" data-a="close" aria-label="Cerrar">×</button></header>
     <p><b>${res.out.length}</b> comprobantes emitidos${res.fails.length ? ` · <b>${res.fails.length}</b> con error` : ''}.</p>
-    <div class="tw"><table><tbody>${res.out.map(o => `<tr><td class="mono small">${esc(o.key)}</td><td>${esc(tipoNombre(o.rec))} ${esc(o.rec.serie)}${esc(o.rec.folio)}</td><td class="mono small">${esc(o.rec.uuid.slice(0, 8))}…</td><td><button class="btn sm ghost" data-a="verPDF" data-id="${o.rec.id}">PDF</button></td></tr>`).join('')}${res.fails.map(f => `<tr><td>${esc(f.key)}</td><td colspan="3" class="ferr">${esc(f.m)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="tw"><table><tbody>${res.out.map(o => `<tr><td class="mono small">${esc(o.key)}</td><td>${esc(tipoNombre(o.rec))} ${esc(o.rec.serie)}${esc(o.rec.folio)}</td><td class="mono small">${esc(o.rec.uuid.slice(0, 8))}…</td><td><button class="btn sm ghost" data-a="verPDF" data-id="${esc(o.rec.id)}">PDF</button></td></tr>`).join('')}${res.fails.map(f => `<tr><td>${esc(f.key)}</td><td colspan="3" class="ferr">${esc(f.m)}</td></tr>`).join('')}</tbody></table></div>
     <footer class="mf"><button class="btn ghost" data-a="loteZip" data-k="xml">XML del lote (.zip)</button><button class="btn" data-a="loteZip" data-k="pdf">PDF del lote (.zip)</button></footer>`, true);
   },
   loteZip: async el => {

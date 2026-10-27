@@ -338,7 +338,7 @@ const pdfName = rec => `${(S.emisores.find(e => e.id === rec.emisorId) || EM()).
 async function verPDF(id) {
   const c = S.cfdis.find(x => x.id === id); if (!c) return;
   openModal(`<header class="mh"><div><p class="eyebrow">Representación impresa</p><h3>${esc(tipoNombre(c))} ${esc(c.serie)}${esc(c.folio)}</h3></div><button class="x" data-a="close" aria-label="Cerrar">×</button></header><div class="pdfpages" id="pdfpages"><p class="muted">Generando vista previa…</p></div>
-  <footer class="mf"><button class="btn ghost" data-a="ver" data-id="${c.id}">Volver al detalle</button><button class="btn" data-a="dlPDF" data-id="${c.id}">Descargar PDF</button></footer>`, true);
+  <footer class="mf"><button class="btn ghost" data-a="ver" data-id="${esc(c.id)}">Volver al detalle</button><button class="btn" data-a="dlPDF" data-id="${esc(c.id)}">Descargar PDF</button></footer>`, true);
   const tok = S._pdfTok = Symbol('pdf');
   try { const P = await renderRec(c, new CanvasPainter(1.6)); const box = $('#pdfpages'); if (!box || S._pdfTok !== tok) return; box.innerHTML = ''; P.pages.forEach(cv => { cv.className = 'pdfpage'; box.appendChild(cv); }); }
   catch (e) { const box = $('#pdfpages'); if (box) box.innerHTML = `<p class="ferr">No se pudo generar la vista previa: ${esc(e.message)}</p>`; }

@@ -15,7 +15,7 @@ Ejecutar:
   pip install -r requirements.txt
   FOLIA_ORIGINS="https://tu-usuario.github.io,http://localhost:8000" uvicorn main:app --reload --port 8080
 
-Para producción cambia SQLite por PostgreSQL y sirve la API detrás de HTTPS.
+Para producción cambia SQLite por PostgreSQL y sirve la API detrás de HTTPS. El límite de intentos de login es en memoria (un solo proceso); con varios workers muévelo a Redis o a tu proxy.
 """
 import hashlib
 import hmac
@@ -26,7 +26,9 @@ import sqlite3
 import time
 from contextlib import contextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from collections import defaultdict, deque
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 
@@ -35,7 +37,34 @@ SESSION_DAYS = int(os.environ.get("FOLIA_SESSION_DAYS", "30"))
 ORIGINS = [o.strip() for o in os.environ.get("FOLIA_ORIGINS", "http://localhost:8000").split(",") if o.strip()]
 
 app = FastAPI(title="Folia API", version="1.0")
-app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+MAX_BODY = int(os.environ.get("FOLIA_MAX_BODY", str(2 * 1024 * 1024)))
+LOGIN_MAX, LOGIN_WINDOW = 5, 15 * 60  # intentos fallidos por correo+IP en la ventana (segundos)
+_fails = defaultdict(deque)
+
+
+@app.middleware("http")
+async def seguridad(request: Request, call_next):
+    if int(request.headers.get("content-length") or 0) > MAX_BODY:
+        return Response("Solicitud demasiado grande", status_code=413)
+    resp = await call_next(request)
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return resp
+
+
+def _bloqueado(key: str) -> bool:
+    q = _fails[key]
+    while q and q[0] < time.time() - LOGIN_WINDOW:
+        q.popleft()
+    return len(q) >= LOGIN_MAX
 
 
 @contextmanager
@@ -65,17 +94,22 @@ def pw_hash(password: str, salt: str) -> str:
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 310_000).hex()
 
 
+def tok_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def new_session(user_id: int) -> str:
     token = secrets.token_urlsafe(32)
     with db() as c:
-        c.execute("insert into sessions values (?,?,?)", (token, user_id, time.time() + SESSION_DAYS * 86400))
+        c.execute("delete from sessions where expires < ?", (time.time(),))
+        c.execute("insert into sessions values (?,?,?)", (tok_hash(token), user_id, time.time() + SESSION_DAYS * 86400))
     return token
 
 
 def current_user(authorization: str = Header(default="")) -> int:
     token = authorization.removeprefix("Bearer ").strip()
     with db() as c:
-        row = c.execute("select user_id, expires from sessions where token = ?", (token,)).fetchone()
+        row = c.execute("select user_id, expires from sessions where token = ?", (tok_hash(token),)).fetchone()
     if not row or row["expires"] < time.time():
         raise HTTPException(401, "Tu sesión expiró. Vuelve a iniciar sesión.")
     return row["user_id"]
@@ -83,18 +117,18 @@ def current_user(authorization: str = Header(default="")) -> int:
 
 class Signup(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
-    nombre: str = ""
+    password: str = Field(min_length=10, max_length=128)
+    nombre: str = Field(default="", max_length=120)
 
 
 class Login(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=128)
 
 
 class Doc(BaseModel):
-    acct: str = ""
-    coll: str = ""
+    acct: str = Field(default="", max_length=120)
+    coll: str = Field(default="", max_length=60)
     data: dict
 
 
@@ -112,18 +146,25 @@ def signup(body: Signup):
 
 
 @app.post("/auth/login")
-def login(body: Login):
+def login(body: Login, request: Request):
+    key = f"{body.email.lower()}|{request.client.host if request.client else ''}"
+    if _bloqueado(key):
+        raise HTTPException(429, "Demasiados intentos. Espera unos minutos.")
     with db() as c:
         u = c.execute("select * from users where email = ?", (body.email.lower(),)).fetchone()
-    if not u or not hmac.compare_digest(u["hash"], pw_hash(body.password, u["salt"])):
+    # Se calcula el hash aunque el correo no exista, para no revelar qué cuentas existen por el tiempo de respuesta
+    ok = hmac.compare_digest(u["hash"] if u else "0" * 64, pw_hash(body.password, u["salt"] if u else "0" * 32))
+    if not u or not ok:
+        _fails[key].append(time.time())
         raise HTTPException(401, "Correo o contraseña incorrectos.")
+    _fails.pop(key, None)
     return {"token": new_session(u["id"])}
 
 
 @app.post("/auth/logout", status_code=204)
 def logout(authorization: str = Header(default="")):
     with db() as c:
-        c.execute("delete from sessions where token = ?", (authorization.removeprefix("Bearer ").strip(),))
+        c.execute("delete from sessions where token = ?", (tok_hash(authorization.removeprefix("Bearer ").strip()),))
     return Response(status_code=204)
 
 
@@ -135,7 +176,7 @@ def me(uid: int = Depends(current_user)):
 
 
 @app.get("/docs/{doc_id}")
-def get_doc(doc_id: str, uid: int = Depends(current_user)):
+def get_doc(doc_id: str = Path(max_length=200), uid: int = Depends(current_user)):
     with db() as c:
         row = c.execute("select data from docs where user_id = ? and id = ?", (uid, doc_id)).fetchone()
     if not row:
@@ -144,7 +185,7 @@ def get_doc(doc_id: str, uid: int = Depends(current_user)):
 
 
 @app.put("/docs/{doc_id}", status_code=204)
-def put_doc(doc_id: str, body: Doc, uid: int = Depends(current_user)):
+def put_doc(body: Doc, doc_id: str = Path(max_length=200), uid: int = Depends(current_user)):
     with db() as c:
         c.execute(
             "insert into docs (user_id, id, acct, coll, data, updated) values (?,?,?,?,?,?) "
@@ -155,7 +196,7 @@ def put_doc(doc_id: str, body: Doc, uid: int = Depends(current_user)):
 
 
 @app.delete("/docs/{doc_id}", status_code=204)
-def del_doc(doc_id: str, uid: int = Depends(current_user)):
+def del_doc(doc_id: str = Path(max_length=200), uid: int = Depends(current_user)):
     with db() as c:
         c.execute("delete from docs where user_id = ? and id = ?", (uid, doc_id))
     return Response(status_code=204)

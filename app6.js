@@ -178,7 +178,7 @@ bitaActions = function (e) {
   const a = e.action || {}, b = [];
   if (e.code === 'FOLIO_INTERNO_DUPLICADO' && a.kind === 'cell') b.push(`<button class="btn sm" data-a="folioLote" data-cell="${a.sec}|${a.i}|Folio">Reasignar al siguiente folio libre (${esc(folioLoteLabel(`${a.sec}|${a.i}|Folio`))})</button>`);
   if (a.kind === 'folioDraft') b.push(`<button class="btn sm" data-a="bitaFolioDraft">Reasignar al siguiente folio libre${S.draft ? ` (${esc(fmtSF(S.draft.serie, nextFree(S.draft.serie)))})` : ''}</button>`);
-  if (a.kind === 'acuse') b.push(`<button class="btn sm ghost" data-a="acuse" data-id="${a.id}">Ver acuse SAT</button>`);
+  if (a.kind === 'acuse') b.push(`<button class="btn sm ghost" data-a="acuse" data-id="${esc(a.id)}">Ver acuse SAT</button>`);
   if (a.kind === 'series') b.push('<button class="btn sm ghost" data-a="go" data-v="series">Ver series y folios</button>');
   const base = _bitaActionsF(e); return b.join('') + (b.length && base.includes('—') ? '' : base);
 };

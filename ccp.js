@@ -41,7 +41,7 @@ const _cartaPorteHTMLccp = cartaPorteHTML;
 cartaPorteHTML = function (d) {
   pscpLoad();
   const h = _cartaPorteHTMLccp(d), need = d.cp.merc.some(m => m.peligroso === 'Sí');
-  return h + (need && PSCP.mp ? `<datalist id="dlmp">${[...PSCP.mp.values()].map(x => `<option value="${x[0]}">${esc(x[1].slice(0, 80))}</option>`).join('')}</datalist>` : '') + (PSCP.err ? `<div class="alert warn"><span>${esc(PSCP.err)}</span></div>` : '');
+  return h + (need && PSCP.mp ? `<datalist id="dlmp">${[...PSCP.mp.values()].map(x => `<option value="${esc(x[0])}">${esc(x[1].slice(0, 80))}</option>`).join('')}</datalist>` : '') + (PSCP.err ? `<div class="alert warn"><span>${esc(PSCP.err)}</span></div>` : '');
 };
 function psCpBuscar(q, n = 60) {
   const ws = normQ(q).split(/\s+/).filter(Boolean); if (!PSCP.list) return [];
@@ -58,7 +58,7 @@ function openCatalogCP(onPick) {
   const run = () => {
     $('#catinfo').textContent = PSCP.list ? `Catálogo oficial de Carta Porte: ${PSCP.list.length.toLocaleString('es-MX')} claves, con la columna “Material peligroso”.` : PSCP.err || 'Cargando el catálogo…';
     const res = psCpBuscar($('#catq').value, 60);
-    $('#catres').innerHTML = res.length ? res.map(p => `<button type="button" class="catrow" data-k="${p[0]}" data-d="${esc(p[1])}"><span class="mono">${p[0]}</span><span>${esc(p[1])}${p[3] ? `<small class="muted"> · ${esc(p[3].slice(0, 80))}</small>` : ''}</span>${flagChip(p[2])}</button>`).join('') : '<p class="muted">Sin resultados.</p>';
+    $('#catres').innerHTML = res.length ? res.map(p => `<button type="button" class="catrow" data-k="${esc(p[0])}" data-d="${esc(p[1])}"><span class="mono">${p[0]}</span><span>${esc(p[1])}${p[3] ? `<small class="muted"> · ${esc(p[3].slice(0, 80))}</small>` : ''}</span>${flagChip(p[2])}</button>`).join('') : '<p class="muted">Sin resultados.</p>';
   };
   $('#catq').addEventListener('input', run); run(); if (!PSCP.list && PSCP.loading) PSCP.loading.then(() => { if (!m2.hidden && $('#catq')) run(); });
   $('#catres').addEventListener('click', e => { const b = e.target.closest('.catrow'); if (b) { close2(); onPick(b.dataset.k, b.dataset.d); } });

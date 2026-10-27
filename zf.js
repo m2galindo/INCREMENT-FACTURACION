@@ -33,7 +33,7 @@ function catalogHits(q, n = 40) {
   for (const p of all) { if (out.length >= n) break; const t = (p[0] + ' ' + p[1]).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (ws.every(w => t.includes(w)) && !seen.has(p[0] + p[1])) { seen.add(p[0] + p[1]); out.push(p); } }
   return out;
 }
-const dlOptions = q => catalogHits(q).map(p => `<option value="${p[0]}">${esc(p[1])}</option>`).join('');
+const dlOptions = q => catalogHits(q).map(p => `<option value="${esc(p[0])}">${esc(p[1])}</option>`).join('');
 function conceptGrid(d) {
   const isT = d.tipo === 'T', neto = !!d.netoMode && !isT;
   const head = ['#', 'Clave SAT', 'Descripción', 'Cant.', 'Unidad'].concat(isT ? [] : ['V. unitario'].concat(neto ? ['Neto a recibir'] : []).concat(['Desc.', 'Objeto', 'IVA', 'Ret. ISR', 'Ret. IVA', 'Importe'])).concat(['', '']);
@@ -50,7 +50,7 @@ function conceptGrid(d) {
     tr += `<td><button class="x sm" data-a="moreRow" data-i="${i}" title="IEPS y número de identificación" aria-label="Más campos del concepto ${i + 1}">⋯</button></td><td>${d.conceptos.length > 1 ? `<button class="x" data-a="delConcepto" data-i="${i}" aria-label="Quitar concepto ${i + 1}">×</button>` : ''}</td></tr>`;
     if (c._more) tr += `<tr class="gmore"><td></td><td colspan="${head.length - 1}"><div class="row wrap">
       ${F('No. identificación (SKU)', inp(p + '.noIdent', c.noIdent, 'placeholder="opcional"'))}
-      ${!isT && conImp ? F('IEPS 2026', `<select data-a2="ieps" data-i="${i}" id="b_${p.replace(/\./g, '_')}_ieps">${IEPS26.map(x => `<option value="${x[0]}"${x[0] === c.iepsCat ? ' selected' : ''}>${esc(x[1])}${x[3] ? ` (${x[2] === 'Cuota' ? '$' + x[3] + '/u' : r2(num(x[3]) * 100) + '%'})` : ''}</option>`).join('')}</select>`) + (c.iepsCat ? F(c.iepsFactor === 'Cuota' ? 'Cuota por unidad' : 'Tasa IEPS', inp(p + '.iepsValor', c.iepsValor, 'class="mono" inputmode="decimal"')) : '') : ''}
+      ${!isT && conImp ? F('IEPS 2026', `<select data-a2="ieps" data-i="${i}" id="b_${p.replace(/\./g, '_')}_ieps">${IEPS26.map(x => `<option value="${esc(x[0])}"${x[0] === c.iepsCat ? ' selected' : ''}>${esc(x[1])}${x[3] ? ` (${x[2] === 'Cuota' ? '$' + x[3] + '/u' : r2(num(x[3]) * 100) + '%'})` : ''}</option>`).join('')}</select>`) + (c.iepsCat ? F(c.iepsFactor === 'Cuota' ? 'Cuota por unidad' : 'Tasa IEPS', inp(p + '.iepsValor', c.iepsValor, 'class="mono" inputmode="decimal"')) : '') : ''}
       <button class="btn ghost sm" data-a="pickCat" data-i="${i}">Buscar en catálogo</button></div></td></tr>`;
     return tr;
   }).join('');

@@ -60,7 +60,7 @@ function openCatalog(onPick) {
     const all = PRODSERV.concat(S.catImport.filter(x => !PRODSERV.some(p => p[0] === x[0])));
     const words = q.split(/\s+/).filter(Boolean);
     const res = (words.length ? all.filter(p => { const t = (p[0] + ' ' + p[1]).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return words.every(w => t.includes(w)); }) : all).slice(0, 60);
-    $('#catres').innerHTML = res.length ? res.map(p => `<button type="button" class="catrow" data-k="${p[0]}" data-d="${esc(p[1])}"><span class="mono">${p[0]}</span><span>${esc(p[1])}</span>${p[2] ? chip('Material peligroso', 'warn') : ''}</button>`).join('') : '<p class="muted">Sin resultados. Prueba otra palabra o importa el catálogo oficial.</p>';
+    $('#catres').innerHTML = res.length ? res.map(p => `<button type="button" class="catrow" data-k="${esc(p[0])}" data-d="${esc(p[1])}"><span class="mono">${p[0]}</span><span>${esc(p[1])}</span>${p[2] ? chip('Material peligroso', 'warn') : ''}</button>`).join('') : '<p class="muted">Sin resultados. Prueba otra palabra o importa el catálogo oficial.</p>';
   };
   $('#catq').addEventListener('input', run); run();
   $('#catres').addEventListener('click', e => { const b = e.target.closest('.catrow'); if (b) { close2(); onPick(b.dataset.k, b.dataset.d); } });
@@ -146,7 +146,7 @@ function render() {
   const em = EM();
   $('#app').innerHTML = `<div class="shell">
   <aside class="side"><div class="brand"><span class="mark" aria-hidden="true">4.0</span><div><b>Folia</b><small>Facturación CFDI</small></div></div>
-    ${S.emisores.length ? `<div class="fld emsel"><label for="emsel">Emisor</label><select id="emsel" data-a2="switchEm">${S.emisores.map(e => `<option value="${e.id}"${em && e.id === em.id ? ' selected' : ''}>${esc(e.rfc)} · ${esc(e.nombre)}</option>`).join('')}</select></div>` : ''}
+    ${S.emisores.length ? `<div class="fld emsel"><label for="emsel">Emisor</label><select id="emsel" data-a2="switchEm">${S.emisores.map(e => `<option value="${esc(e.id)}"${em && e.id === em.id ? ' selected' : ''}>${esc(e.rfc)} · ${esc(e.nombre)}</option>`).join('')}</select></div>` : ''}
     <nav class="nav">${NAV.map(([k, t]) => `<button class="${S.view === k ? 'on' : ''}" data-a="go" data-v="${k}">${t}</button>`).join('')}</nav>
     <div class="who"><span>${esc(S.user.nombre)}</span><button class="link" data-a="logout">Cerrar sesión</button></div>
   </aside>
@@ -188,7 +188,7 @@ VIEWS.inicio = () => {
   ${alerts.length ? `<section class="alerts">${alerts.map(a => `<div class="alert ${a[0]}"><span>${esc(a[1])}</span><button class="link" data-a="go" data-v="${a[2]}">Ir</button></div>`).join('')}</section>` : ''}
   <section class="block"><h2>¿Qué necesitas hacer?</h2><div class="quick">${QUICK.map((q, i) => `<button class="qcard" data-a="quick" data-i="${i}"><b>${q[0]}</b><span>${q[1]}</span><em>${q[2]}</em></button>`).join('')}</div></section>
   <section class="block"><div class="bh"><h2>Facturas por cobrar</h2><button class="link" data-a="go" data-v="pagos">Registrar un pago</button></div>
-  ${pend.length ? `<div class="tw"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th class="n">Total</th><th class="n">Saldo</th><th></th></tr></thead><tbody>${pend.slice(0, 8).map(c => `<tr><td class="mono">${esc(c.serie)}${esc(c.folio)}</td><td>${esc(c.receptor.nombre)}</td><td>${fmtDate(c.fecha)}</td><td class="n">${money(c.total, c.moneda)}</td><td class="n"><b>${money(c.saldo, c.moneda)}</b></td><td><button class="btn sm ghost" data-a="pagarDesde" data-id="${c.id}">Registrar pago</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No tienes facturas a crédito pendientes. Cuando emitas una factura con método PPD aparecerá aquí con su saldo.</p>'}</section>`;
+  ${pend.length ? `<div class="tw"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Fecha</th><th class="n">Total</th><th class="n">Saldo</th><th></th></tr></thead><tbody>${pend.slice(0, 8).map(c => `<tr><td class="mono">${esc(c.serie)}${esc(c.folio)}</td><td>${esc(c.receptor.nombre)}</td><td>${fmtDate(c.fecha)}</td><td class="n">${money(c.total, c.moneda)}</td><td class="n"><b>${money(c.saldo, c.moneda)}</b></td><td><button class="btn sm ghost" data-a="pagarDesde" data-id="${esc(c.id)}">Registrar pago</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No tienes facturas a crédito pendientes. Cuando emitas una factura con método PPD aparecerá aquí con su saldo.</p>'}</section>`;
 };
 const QUICK = [
   ['Vendí y ya me pagaron', 'Factura de ingreso PUE', 'I-PUE'],
@@ -313,7 +313,7 @@ function conceptoHTML(c, i, d) {
   </div>
   ${!isT && ['02', '05'].includes(c.objeto) ? `<details class="taxes"${c.iepsCat || c.retIsr || c.retIva ? ' open' : ''}><summary>Impuestos de este concepto</summary><div class="grid4">
     ${F('IVA trasladado', sel(p + '.iva', IVA_O, c.iva, false))}
-    ${F('IEPS 2026', `<select id="b_${p.replace(/\./g, '_')}_ieps" data-a2="ieps" data-i="${i}">${IEPS26.map(x => `<option value="${x[0]}"${x[0] === c.iepsCat ? ' selected' : ''}>${esc(x[1])}${x[3] ? ` (${x[2] === 'Cuota' ? '$' + x[3] : (num(x[3]) * 100).toFixed(1) + '%'})` : ''}</option>`).join('')}</select>`, 'span2')}
+    ${F('IEPS 2026', `<select id="b_${p.replace(/\./g, '_')}_ieps" data-a2="ieps" data-i="${i}">${IEPS26.map(x => `<option value="${esc(x[0])}"${x[0] === c.iepsCat ? ' selected' : ''}>${esc(x[1])}${x[3] ? ` (${x[2] === 'Cuota' ? '$' + x[3] : (num(x[3]) * 100).toFixed(1) + '%'})` : ''}</option>`).join('')}</select>`, 'span2')}
     ${c.iepsCat ? F(c.iepsFactor === 'Cuota' ? 'Cuota por unidad' : 'Tasa IEPS', inp(p + '.iepsValor', c.iepsValor, 'class="mono" inputmode="decimal"')) : ''}
     ${F('Retención ISR', sel(p + '.retIsr', RISR_O, c.retIsr, false))}${F('Retención IVA', sel(p + '.retIva', RIVA_O, c.retIva, false))}
   </div>${ie && ie[2] === 'Cuota' ? '<small class="muted">La cuota se multiplica por la cantidad (litros o piezas). La base del IVA incluye el IEPS.</small>' : ''}</details>` : ''}

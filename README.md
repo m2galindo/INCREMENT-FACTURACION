@@ -10,7 +10,7 @@ Página estática: no necesita compilación para publicarse.
 | `index.html` | La aplicación completa (lo que se publica) |
 | `folia.config.js` | Configuración: almacenamiento, Supabase, API propia |
 | `data/` | Catálogos del SAT que se cargan bajo demanda (c_CodigoPostal, c_ClaveProdServ, c_ClaveProdServCP, c_MaterialPeligroso) |
-| `src/` | Código fuente por módulos. `sh src/build.sh` regenera `index.html` |
+| `*.js`, `head.html` | Código fuente por módulos. `sh build.sh` regenera `index.html` |
 | `backend/supabase/schema.sql` | Tabla y políticas para guardar en Supabase |
 | `backend/fastapi/` | API de ejemplo en FastAPI |
 
@@ -43,10 +43,12 @@ La cuenta de "Explorar con datos de ejemplo" siempre se guarda solo en el navega
 ### Conectar FastAPI
 1. `cd backend/fastapi && pip install -r requirements.txt`
 2. `FOLIA_ORIGINS="https://TU-USUARIO.github.io" uvicorn main:app --port 8080` (en producción, detrás de HTTPS y con PostgreSQL).
-Publicado en GitHub Pages
 4. En `folia.config.js` descomenta la **Opción B** y pon la URL de tu API.
 
 ## Seguridad
+- `head.html` incluye una Content-Security-Policy. Si usas un backend en otro dominio, ya cabe en `connect-src https:`; si cargas más scripts externos, agrégalos a `script-src`.
+- La API de ejemplo limita intentos de login, guarda los tokens con hash, restringe CORS y limita el tamaño de las peticiones. Aun así: HTTPS obligatorio y PostgreSQL en producción.
+- Los CSV exportados neutralizan fórmulas (`=`, `+`, `-`, `@`) para evitar inyección en Excel.
 - Sin backend, la contraseña se guarda con sal y SHA-256 en el propio navegador: protege contra miradas casuales, no contra alguien con acceso al equipo.
 - Con un backend compartido, usa siempre la autenticación del servidor (`FOLIA_CONFIG.auth`), como en las opciones A y B.
 - La *anon key* de Supabase es pública por diseño; la protección real son las políticas RLS de `schema.sql`. Nunca pongas la *service_role key* en `folia.config.js`.

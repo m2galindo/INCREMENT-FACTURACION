@@ -35,7 +35,7 @@ const A = {
   close2,
   pickRel: () => {
     const d = S.draft, em = EM(); const list = S.cfdis.filter(c => c.emisorId === em.id && ['I', 'E', 'T'].includes(c.tipo) && c.estado !== 'Cancelado' && (!d.receptor.rfc || c.receptor.rfc === d.receptor.rfc.toUpperCase()));
-    openModal(`<header class="mh"><h3>Relacionar CFDI</h3><button class="x" data-a="close" aria-label="Cerrar">×</button></header>${list.length ? `<div class="tw"><table><tbody>${list.map(c => `<tr><td><input type="checkbox" class="relck" value="${c.uuid}" aria-label="Relacionar ${esc(c.serie + c.folio)}"></td><td class="mono">${esc(c.serie)}${esc(c.folio)}</td><td>${esc(c.receptor.nombre)}</td><td>${fmtDate(c.fecha)}</td><td class="n">${money(c.total, c.moneda)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No hay CFDI vigentes para este receptor.</p>'}<footer class="mf"><button class="btn ghost" data-a="close">Cancelar</button><button class="btn" data-a="relOk">Relacionar</button></footer>`, true);
+    openModal(`<header class="mh"><h3>Relacionar CFDI</h3><button class="x" data-a="close" aria-label="Cerrar">×</button></header>${list.length ? `<div class="tw"><table><tbody>${list.map(c => `<tr><td><input type="checkbox" class="relck" value="${esc(c.uuid)}" aria-label="Relacionar ${esc(c.serie + c.folio)}"></td><td class="mono">${esc(c.serie)}${esc(c.folio)}</td><td>${esc(c.receptor.nombre)}</td><td>${fmtDate(c.fecha)}</td><td class="n">${money(c.total, c.moneda)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No hay CFDI vigentes para este receptor.</p>'}<footer class="mf"><button class="btn ghost" data-a="close">Cancelar</button><button class="btn" data-a="relOk">Relacionar</button></footer>`, true);
   },
   relOk: () => { const us = $$('.relck:checked').map(i => i.value); const d = S.draft; const cur = d.relacion.uuids.split(/[\s,]+/).filter(Boolean); d.relacion.uuids = [...new Set(cur.concat(us))].join('\n'); if (!d.relacion.tipo) d.relacion.tipo = d.tipo === 'E' ? '01' : '04'; closeModal(); render(); },
   addUbic: () => { S.draft.cp.ubic.push({tipo: 'Destino', rfc: '', nombre: '', fecha: '', cp: '', estado: '', municipio: '', calle: '', dist: ''}); render(); },
@@ -108,7 +108,7 @@ const A = {
   backup: () => { const data = {cuenta: {email: S.user.email, nombre: S.user.nombre}, emisores: S.emisores, clientes: S.clientes, productos: S.productos, comprobantes: S.cfdis, vehiculos: S.vehiculos, operadores: S.operadores, ubicaciones: S.ubicaciones, exportado: nowLocal()}; ofrecerArchivo(`respaldo_folia_${nowLocal().slice(0, 10)}.json`, JSON.stringify(data, null, 2)); },
   exportCSV: () => {
     const em = EM(); const rows = S.cfdis.filter(c => c.emisorId === em.id).sort((a, b) => a.fecha.localeCompare(b.fecha));
-    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const q = v => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t) && !/^-?\d+(\.\d+)?$/.test(t)) t = "'" + t; return `"${t.replace(/"/g, '""')}"`; };
     const csv = ['Tipo,Serie,Folio,UUID,Fecha,RFC receptor,Receptor,Moneda,Subtotal,Total,Metodo,Forma,Saldo,Estado'].concat(rows.map(c => [tipoNombre(c), c.serie, c.folio, c.uuid, c.fecha, c.receptor.rfc, c.receptor.nombre, c.moneda, f2(c.subtotal || 0), f2(c.tipo === 'P' ? c.montoPago : c.tipo === 'R' ? c.totalRet : c.total), c.metodo || '', c.forma || '', f2(c.saldo || 0), c.estado].map(q).join(','))).join('\n');
     ofrecerArchivo(`comprobantes_${em.rfc}_${nowLocal().slice(0, 10)}.csv`, '﻿' + csv);
   }

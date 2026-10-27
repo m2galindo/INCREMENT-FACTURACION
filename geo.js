@@ -146,7 +146,7 @@ const _bitaActionsGeo = bitaActions;
 bitaActions = function (e) {
   const a = e.action || {};
   if (GEO_CODES.has(e.code) && a.kind === 'cell') return `<button class="btn sm" data-a="geoFixLote" data-cell="${a.sec}|${a.i}|${a.f}">Autocorregir claves según Código Postal SAT</button>` + _bitaActionsGeo(e);
-  if (GEO_CODES.has(e.code) && a.kind === 'fix') return `<button class="btn sm" data-a="bitaEd" data-id="${e.id}">Autocorregir claves según Código Postal SAT</button>`;
+  if (GEO_CODES.has(e.code) && a.kind === 'fix') return `<button class="btn sm" data-a="bitaEd" data-id="${esc(e.id)}">Autocorregir claves según Código Postal SAT</button>`;
   return _bitaActionsGeo(e);
 };
 const _opcionesValidasGeo = opcionesValidas;
